@@ -98,16 +98,16 @@ positional:
   input_file       Path to input file (.pdf, .txt, or .md)
 
 options:
-  -o, --output_dir   Output directory (default: folder named after input)
+  -o, --output_dir   Output directory (default: folder named after input file)
   --theme            Presentation theme (default: designer)
-  --num_slides       Target number of slides
-  --verbosity        [concise, normal, detailed]
-  --provider         LLM provider: google | openrouter | openai | anthropic
-  --model            Model name (e.g. gpt-5.2, claude-opus-4-6, gemini-3-pro-preview)
-  --use_cached       Skip the LLM call and reuse the cached response (for re-styling)
-  --page_range       Pages to extract from PDF (e.g. 0-5, 10)
-  --disable_ocr      Disable OCR for PDF extraction
-  --skip_pdf         Skip the final Marp-to-PDF render step
+  --num_slides       Target number of slides (default: auto)
+  --verbosity        Slide text density: concise | normal | detailed (default: normal)
+  --provider         LLM provider: google | openrouter | openai | anthropic (default: from project_secrets.py)
+  --model            Model name, e.g. gpt-5.2, claude-opus-4-6, gemini-3-pro-preview (default: provider's recommended model)
+  --use_cached       Skip the LLM call and reuse the cached response (default: off)
+  --page_range       Pages to extract from PDF, e.g. 0-5, 10 (default: all pages)
+  --disable_ocr      Disable OCR for PDF extraction (default: OCR enabled)
+  --skip_pdf         Skip the final Marp-to-PDF render step (default: off)
 ```
 
 ---
@@ -168,9 +168,9 @@ python3 render_marp_pdf.py my_project/my_presentation.md
 ```
 options:
   --pdf_path       Path to input PDF
-  --output_dir     Directory for output assets (default: same as PDF)
-  --page_range     Page range to extract (e.g. 0-5, 10, 12-14)
-  --disable_ocr    Disable OCR and rely on embedded PDF text
+  --output_dir     Directory for output assets (default: same directory as PDF)
+  --page_range     Page range to extract, e.g. 0-5, 10, 12-14 (default: all pages)
+  --disable_ocr    Disable OCR and rely on embedded PDF text (default: OCR enabled)
 ```
 
 ### `build_slides.py`
@@ -178,20 +178,21 @@ options:
 options:
   --input_file     Path to your extracted content markdown
   --output_file    Path to save the generated presentation markdown
-  --num_slides     Target number of slides
-  --theme          [designer, editorial, midnight, blush, tech, premium, terra, slate, crimson]
-  --verbosity      [concise, normal, detailed]
-  --provider       LLM provider: google | openrouter | openai | anthropic
-  --model          Model name (e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview)
-  --use_cached     Skip the LLM call and reuse a previously saved response
+  --num_slides     Target number of slides (default: auto)
+  --theme          Presentation theme (default: designer)
+                   choices: designer | editorial | midnight | blush | tech | premium | terra | slate | crimson
+  --verbosity      Slide text density: concise | normal | detailed (default: normal)
+  --provider       LLM provider: google | openrouter | openai | anthropic (default: from project_secrets.py)
+  --model          Model name, e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview (default: provider's recommended model)
+  --use_cached     Skip the LLM call and reuse a previously saved response (default: off)
 ```
 
 ### `render_marp_pdf.py`
 ```
 options:
-  input_md         Path to the Marp markdown file.
-  -o, --output     Output PDF path (defaults to input name + .pdf)
-  --browser        Browser engine Marp should use [auto, chrome, edge, firefox]
+  input_md         Path to the Marp markdown file
+  -o, --output     Output PDF path (default: input filename with .pdf extension)
+  --browser        Browser engine for Marp: auto | chrome | edge | firefox (default: auto)
 ```
 
 ---
