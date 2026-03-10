@@ -68,7 +68,7 @@ Just point `build.py` at your file and everything happens automatically:
 
 ```bash
 # From a PDF (extracts → generates slides → renders PDF)
-python3 build.py paper.pdf --theme designer
+python3 build.py paper.pdf
 
 # From a text or markdown file
 python3 build.py notes.txt --theme midnight
