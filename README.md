@@ -1,8 +1,8 @@
 # SlidesAI 🚀
 
-Give this tool a PDF or text file, and it automatically extracts the content, writes a compelling presentation using LLMs, and builds beautiful PDF slides using Marp.
+Give this tool a PDF or text file, it automatically extracts the content and builds beautiful PDF slides.
 
-No more blank stares at PowerPoint templates—generate a polished deck in seconds.
+**Demos:** [OpenAI Pitch Deck](demo/openai_pitch/) · [Attention Is All You Need](demo/transformer/)
 
 <table>
 <tr>
@@ -29,7 +29,6 @@ No more blank stares at PowerPoint templates—generate a polished deck in secon
 - **LLM-Powered Writing:** Works with Gemini, OpenAI, Claude, and OpenRouter. Adjustable verbosity: concise, normal, or detailed.
 - **Academic & General Purpose:** Built for research and technical content, but works for any topic or industry.
 - **9 Handcrafted Themes:** Professionally designed styles with curated typography and color palettes (see below).
-- **Editable Markdown + PDF Output:** Generates plain Marp Markdown — easy to tweak by hand or with AI, and renders to a crisp vector PDF via headless Chrome.
 
 ---
 
@@ -54,9 +53,9 @@ Set `LLM_PROVIDER` and the corresponding key in `project_secrets.py`. Only the k
 
 | Provider | Key variable | Default model |
 |----------|-------------|---------------|
-| `google` | `GEMINI_API_KEY` | `gemini-2.5-pro` |
-| `openrouter` | `OPENROUTER_API_KEY` | `gemini-2.5-pro` |
-| `openai` | `OPENAI_API_KEY` | `gpt-4o` |
+| `google` | `GEMINI_API_KEY` | `gemini-3-pro-preview` |
+| `openrouter` | `OPENROUTER_API_KEY` | `gemini-3-pro-preview` |
+| `openai` | `OPENAI_API_KEY` | `gpt-5.2` |
 | `anthropic` | `ANTHROPIC_API_KEY` | `claude-opus-4-6` |
 
 *(This file is gitignored to keep your keys safe.)*
@@ -81,7 +80,7 @@ python3 build.py paper.pdf --theme designer --num_slides 15 --verbosity detailed
 python3 build.py paper.pdf --theme slate --page_range 0-10 --num_slides 10 --verbosity concise
 
 # Use a different LLM provider
-python3 build.py paper.pdf --provider openai --model gpt-4o
+python3 build.py paper.pdf --provider openai --model gpt-5.2
 python3 build.py paper.pdf --provider anthropic
 ```
 
@@ -104,7 +103,7 @@ options:
   --num_slides       Target number of slides
   --verbosity        [concise, normal, detailed]
   --provider         LLM provider: google | openrouter | openai | anthropic
-  --model            Model name (e.g. gpt-4o, claude-opus-4-6, gemini-2.5-pro)
+  --model            Model name (e.g. gpt-5.2, claude-opus-4-6, gemini-3-pro-preview)
   --use_cached       Skip the LLM call and reuse the cached response (for re-styling)
   --page_range       Pages to extract from PDF (e.g. 0-5, 10)
   --disable_ocr      Disable OCR for PDF extraction
@@ -183,7 +182,7 @@ options:
   --theme          [designer, editorial, midnight, blush, tech, premium, terra, slate, crimson]
   --verbosity      [concise, normal, detailed]
   --provider       LLM provider: google | openrouter | openai | anthropic
-  --model          Model name (e.g. gpt-4o, claude-sonnet-4-6, gemini-2.5-pro)
+  --model          Model name (e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview)
   --use_cached     Skip the LLM call and reuse a previously saved response
 ```
 
