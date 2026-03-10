@@ -2,7 +2,7 @@
 
 Give this tool a PDF or text file, it automatically extracts the content and builds beautiful PDF slides.
 
-**Demos:** [OpenAI Pitch Deck](demo/openai_pitch/) · [Attention Is All You Need](demo/transformer/)
+**Demos:** [OpenAI Pitch Deck](demo/openai_pitch/) ([source](demo/openai_pitch.txt)) · [Attention Is All You Need](demo/transformer/) ([source](demo/transformer.pdf))
 
 <table>
 <tr>
