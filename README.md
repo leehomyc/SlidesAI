@@ -188,4 +188,4 @@ options:
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
-[MIT License]
+[MIT License](LICENSE) — free to use, modify, and distribute.
