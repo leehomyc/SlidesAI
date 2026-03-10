@@ -100,9 +100,9 @@ positional:
 options:
   -o, --output_dir   Output directory (default: folder named after input file)
   --theme            Presentation theme (default: designer)
-  --num_slides       Target number of slides (default: auto)
+  --num_slides       Target number of slides (default: 14-20)
   --verbosity        Slide text density: concise | normal | detailed (default: normal)
-  --provider         LLM provider: google | openrouter | openai | anthropic (default: from project_secrets.py)
+  --provider         LLM provider: google | openrouter | openai | anthropic (default: google)
   --model            Model name, e.g. gpt-5.2, claude-opus-4-6, gemini-3-pro-preview (default: provider's recommended model)
   --use_cached       Skip the LLM call and reuse the cached response (default: off)
   --page_range       Pages to extract from PDF, e.g. 0-5, 10 (default: all pages)
@@ -177,12 +177,12 @@ options:
 ```
 options:
   --input_file     Path to your extracted content markdown
-  --output_file    Path to save the generated presentation markdown
-  --num_slides     Target number of slides (default: auto)
+  --output_file    Path to save the generated presentation markdown (default: {input_filename}_slides.md)
+  --num_slides     Target number of slides (default: 14-20)
   --theme          Presentation theme (default: designer)
                    choices: designer | editorial | midnight | blush | tech | premium | terra | slate | crimson
   --verbosity      Slide text density: concise | normal | detailed (default: normal)
-  --provider       LLM provider: google | openrouter | openai | anthropic (default: from project_secrets.py)
+  --provider       LLM provider: google | openrouter | openai | anthropic (default: google)
   --model          Model name, e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview (default: provider's recommended model)
   --use_cached     Skip the LLM call and reuse a previously saved response (default: off)
 ```
