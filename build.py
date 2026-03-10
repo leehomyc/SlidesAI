@@ -71,9 +71,9 @@ def parse_args() -> argparse.Namespace:
     slide_group.add_argument("--num_slides", type=int, default=None, help="Target number of slides.")
     slide_group.add_argument(
         "--theme",
-        default="designer",
+        default="premium",
         choices=["designer", "editorial", "midnight", "blush", "tech", "premium", "terra", "slate", "crimson"],
-        help="Presentation theme (default: designer).",
+        help="Presentation theme (default: premium).",
     )
     slide_group.add_argument(
         "--verbosity",

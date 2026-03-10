@@ -4462,7 +4462,7 @@ if __name__ == "__main__":
     parser.add_argument("--input_file", default="project_output/assets_marker/extracted_content.md")
     parser.add_argument("--output_file", default=None, help="Path to save the generated markdown file. Defaults to input_file_slides.md")
     parser.add_argument("--num_slides", default=None)
-    parser.add_argument("--theme", default="designer", choices=["designer", "editorial", "midnight", "blush", "tech", "premium", "terra", "slate", "crimson"], help="Select presentation theme: 'designer' (default), 'editorial', 'midnight', or 'blush'")
+    parser.add_argument("--theme", default="premium", choices=["designer", "editorial", "midnight", "blush", "tech", "premium", "terra", "slate", "crimson"], help="Select presentation theme: 'premium' (default), 'designer', 'editorial', 'midnight', or others")
     parser.add_argument("--no_page_numbers", action="store_true", help="Do not show page numbers on slides")
     parser.add_argument("--use_cached", action="store_true", help="Use cached llm_response_raw.txt instead of calling LLM")
     parser.add_argument("--verbosity", default="normal", choices=["concise", "normal", "detailed"], help="Control how much text the LLM generates per slide: 'concise' (≤2 short bullets), 'normal' (2-4 bullets), 'detailed' (3-5 full bullets)")

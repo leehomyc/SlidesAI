@@ -99,7 +99,7 @@ positional:
 
 options:
   -o, --output_dir   Output directory (default: folder named after input file)
-  --theme            Presentation theme (default: designer)
+  --theme            Presentation theme (default: premium)
   --num_slides       Target number of slides (default: 14-20)
   --verbosity        Slide text density: concise | normal | detailed (default: normal)
   --provider         LLM provider: google | openrouter | openai | anthropic (default: google)
@@ -161,7 +161,7 @@ options:
   --input_file     Path to your extracted content markdown
   --output_file    Path to save the generated presentation markdown (default: {input_filename}_slides.md)
   --num_slides     Target number of slides (default: 14-20)
-  --theme          Presentation theme (default: designer)
+  --theme          Presentation theme (default: premium)
                    choices: designer | editorial | midnight | blush | tech | premium | terra | slate | crimson
   --verbosity      Slide text density: concise | normal | detailed (default: normal)
   --provider       LLM provider: google | openrouter | openai | anthropic (default: google)
