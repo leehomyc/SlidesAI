@@ -1,0 +1,12 @@
+# Python Version: 3.12.2
+
+# Presentation Builder Dependencies
+google-genai>=0.2.0
+markdown
+
+# OpenRouter (OpenAI-compatible API)
+openai>=1.0.0
+
+# PDF Extraction Dependencies (if running extraction locally)
+marker-pdf>=0.2.9
+pypdfium2>=4.0.0

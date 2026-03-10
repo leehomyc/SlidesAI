@@ -1,0 +1,5 @@
+project_secrets.py
+__pycache__/
+*.pyc
+.env
+.DS_Store

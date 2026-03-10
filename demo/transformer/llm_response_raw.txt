@@ -1,0 +1,103 @@
+[
+  {
+    "template": "title",
+    "title": "Attention Is All You Need",
+    "authors": "Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Łukasz Kaiser, Illia Polosukhin",
+    "subtitle": "Google Brain, Google Research, University of Toronto"
+  },
+  {
+    "template": "hero_dark",
+    "title": "The Challenge of Sequential Models",
+    "text": "<ul><li>Dominant models like RNNs and LSTMs are inherently sequential, processing data token-by-token.</li><li>This sequential nature ($h_t$ depends on $h_{t-1}$) prevents parallelization within examples.</li><li>Learning long-range dependencies is a key challenge due to long signal paths and vanishing gradients.</li><li>Memory constraints limit batching across examples for long sequences.</li></ul>"
+  },
+  {
+    "template": "hero_dark",
+    "title": "A New Architecture: The Transformer",
+    "text": "<ul><li>We propose a network architecture based solely on attention mechanisms.</li><li>It dispenses with recurrence and convolutions entirely.</li><li>This design allows for significantly more parallelization, reducing training time.</li><li>Achieves state-of-the-art translation quality while requiring less time to train.</li></ul>"
+  },
+  {
+    "template": "challenge_solution",
+    "title": "High-Level Architecture",
+    "text": "<ul><li>The Transformer follows a standard encoder-decoder structure.</li><li><b>Encoder:</b> Maps an input sequence of symbols to a sequence of continuous representations.</li><li><b>Decoder:</b> Generates an output sequence one symbol at a time, consuming previously generated symbols.</li><li>Both components use stacked self-attention and point-wise, fully connected layers.</li></ul>",
+    "image": "_page_2_Figure_0.jpeg"
+  },
+  {
+    "template": "challenge_solution",
+    "title": "The Core Mechanism: Attention",
+    "text": "<ul><li>An attention function maps a query and a set of key-value pairs to an output.</li><li>The output is a weighted sum of the values, where weights are computed based on query-key compatibility.</li><li>We use a specific implementation called Scaled Dot-Product Attention.</li></ul>",
+    "image": "_page_3_Figure_1.jpeg"
+  },
+  {
+    "template": "hero_dark",
+    "title": "Scaled Dot-Product Attention",
+    "text": "<ul><li>Input consists of queries (Q), keys (K) of dimension $d_k$, and values (V) of dimension $d_v$.</li><li>Dot products of the query with all keys are computed, then scaled by $\\frac{1}{\\sqrt{d_k}}$.</li><li>Scaling prevents the softmax function from entering regions with small gradients, stabilizing training.</li><li>A softmax is applied to obtain weights on the values.</li></ul>",
+    "equation": "$$Attention(Q, K, V) = softmax(\\frac{QK^{T}}{\\sqrt{d_k}})V$$"
+  },
+  {
+    "template": "challenge_solution",
+    "title": "Multi-Head Attention",
+    "text": "<ul><li>Instead of a single attention function, we use multiple attention 'heads' in parallel.</li><li>Queries, keys, and values are linearly projected $h$ times with different learned projections.</li><li>This allows the model to jointly attend to information from different representation subspaces at different positions.</li><li>Outputs from each head are concatenated and projected to form the final result.</li></ul>",
+    "image": "_page_3_Picture_2.jpeg"
+  },
+  {
+    "template": "hero_dark",
+    "title": "Multi-Head Attention in Detail",
+    "text": "<ul><li>We use $h=8$ parallel attention heads.</li><li>For each head, we use reduced key, value, and query dimensions: $d_k = d_v = d_{model}/h = 64$.</li><li>The total computational cost is similar to single-head attention with full dimensionality.</li></ul>",
+    "equation": "$$\\begin{split} \\text{MultiHead}(Q, K, V) &= \\text{Concat}(\\text{head}_1, ..., \\text{head}_{\\text{h}}) W^O \\\\ \\text{where head}_{\\text{i}} &= \\text{Attention}(QW_i^Q, KW_i^K, VW_i^V) \\end{split}$$"
+  },
+  {
+    "template": "columns_smart",
+    "title": "Layer Structure",
+    "features": [
+      {
+        "title": "Encoder Layer",
+        "text": "<ul><li>Composed of two sub-layers:</li><li>1. Multi-Head Self-Attention</li><li>2. Position-wise Feed-Forward Network</li><li>Residual connections and Layer Normalization are applied around each sub-layer.</li></ul>"
+      },
+      {
+        "title": "Decoder Layer",
+        "text": "<ul><li>Composed of three sub-layers:</li><li>1. Masked Multi-Head Self-Attention</li><li>2. Encoder-Decoder Attention</li><li>3. Position-wise Feed-Forward Network</li><li>Masking in the self-attention layer preserves the auto-regressive property.</li></ul>"
+      }
+    ]
+  },
+  {
+    "template": "hero_dark",
+    "title": "Positional Encoding",
+    "text": "<ul><li>Since the model contains no recurrence or convolution, we must inject information about token position.</li><li>We add 'positional encodings' to the input embeddings at the bottom of the encoder and decoder stacks.</li><li>We use sine and cosine functions of different frequencies.</li></ul>",
+    "equation": "$$\\begin{split} PE_{(pos,2i)} &= sin(pos/10000^{2i/d_{\\rm model}}) \\\\ PE_{(pos,2i+1)} &= cos(pos/10000^{2i/d_{\\rm model}}) \\end{split}$$"
+  },
+  {
+    "template": "results_table",
+    "title": "Why Self-Attention?",
+    "text": "<ul><li>Self-attention layers offer advantages in computational complexity, parallelization, and learning long-range dependencies.</li><li>The path length between any two positions is constant ($O(1)$), unlike in recurrent ($O(n)$) or convolutional ($O(\\log_k(n))$) layers.</li></ul>",
+    "markdown_table": "| Layer Type | Complexity per Layer | Sequential Operations | Maximum Path Length |\n|---|---|---|---|\n| Self-Attention | $O(n^2 \\cdot d)$ | O(1) | O(1) |\n| Recurrent | $O(n \\cdot d^2)$ | O(n) | O(n) |\n| Convolutional | $O(k \\cdot n \\cdot d^2)$ | O(1) | $O(\\log_k(n))$ |\n| Self-Attention (restricted) | $O(r \\cdot n \\cdot d)$ | O(1) | O(n/r) |"
+  },
+  {
+    "template": "results_table",
+    "title": "State-of-the-Art Machine Translation",
+    "text": "<ul><li>The Transformer outperforms the best previously reported models on WMT 2014 translation tasks.</li><li>The big model establishes a new SOTA BLEU score of 28.4 on English-to-German.</li><li>This performance is achieved at a fraction of the training cost of competing models.</li></ul>",
+    "markdown_table": "| Model | BLEU (EN-DE) | BLEU (EN-FR) | Training Cost (FLOPs) |\n|---|---|---|---|\n| GNMT + RL [38] | 24.6 | 39.92 | $2.3 \\times 10^{19}$ |\n| ConvS2S [9] | 25.16 | 40.46 | $9.6 \\times 10^{18}$ |\n| GNMT + RL Ensemble [38] | 26.30 | 41.16 | $1.8 \\times 10^{20}$ |\n| **Transformer (base)** | **27.3** | **38.1** | **$3.3 \\times 10^{18}$** |\n| **Transformer (big)** | **28.4** | **41.8** | **$2.3 \\times 10^{19}$** |"
+  },
+  {
+    "template": "results_table",
+    "title": "Ablation Studies",
+    "text": "<ul><li>We varied components to measure their importance on English-to-German translation.</li><li>(A) 8 attention heads were found to be optimal.</li><li>(D) Dropout is very helpful in avoiding over-fitting.</li><li>(E) Sinusoidal positional encodings perform nearly identically to learned embeddings.</li></ul>",
+    "markdown_table": "| Variation | PPL (dev) | BLEU (dev) |\n|---|---|---|\n| **base (h=8)** | **4.92** | **25.8** |\n| (A) h=1 | 5.29 | 24.9 |\n| (A) h=16 | 4.91 | 25.8 |\n| (D) $P_{drop}=0.0$ | 5.77 | 24.6 |\n| (E) Learned Positional Embedding | 4.92 | 25.7 |\n| **big** | **4.33** | **26.4** |"
+  },
+  {
+    "template": "results_table",
+    "title": "Generalizing to Other Tasks: Parsing",
+    "text": "<ul><li>To test generalization, we applied the Transformer to English constituency parsing.</li><li>The model performs surprisingly well with minimal task-specific tuning.</li><li>It outperforms the BerkeleyParser even when trained only on the small 40K sentence WSJ dataset.</li></ul>",
+    "markdown_table": "| Parser | Training Setting | WSJ 23 F1 Score |\n|---|---|---|\n| Recurrent Neural Network Grammar | generative | 93.3 |\n| Vinyals & Kaiser et al. (2015) | semi-supervised | 92.1 |\n| **Transformer (4 layers)** | **semi-supervised** | **92.7** |\n| Dyer et al. (2016) | WSJ only | 91.7 |\n| **Transformer (4 layers)** | **WSJ only** | **91.3** |"
+  },
+  {
+    "template": "challenge_solution",
+    "title": "Visualizing Attention",
+    "text": "<ul><li>Self-attention mechanisms can lead to more interpretable models.</li><li>We can inspect attention distributions to see how the model represents syntactic and semantic structures.</li><li>Different attention heads learn to perform different tasks, such as tracking long-distance dependencies or resolving anaphora.</li></ul>",
+    "image": "_page_12_Figure_1.jpeg"
+  },
+  {
+    "template": "end",
+    "title": "Conclusion",
+    "text": "<ul><li>We presented the Transformer, the first sequence transduction model based entirely on attention.</li><li>It trains significantly faster and achieves a new state of the art on machine translation tasks.</li><li>We are excited about the future of attention-based models and plan to apply them to other tasks and modalities.</li></ul>"
+  }
+]

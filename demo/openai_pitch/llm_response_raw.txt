@@ -1,0 +1,149 @@
+[
+    {
+        "template": "title",
+        "title": "Building Artificial Intelligence for Humanity",
+        "authors": "OpenAI",
+        "subtitle": "An Overview of Mission, Technology, and Impact"
+    },
+    {
+        "template": "hero_dark",
+        "title": "Mission: Ensure AGI Benefits All of Humanity",
+        "text": "<ul><li>Develop artificial general intelligence (AGI) to perform most economically valuable tasks better than humans.</li><li>Ensure powerful AI is developed responsibly, deployed safely, and widely distributed.</li><li>Make the advantages of advanced AI accessible to everyone.</li></ul>"
+    },
+    {
+        "template": "columns_smart",
+        "title": "The Global Challenge: A Gap Between Information and Intelligence",
+        "features": [
+            {
+                "title": "Limited Expertise",
+                "text": "The internet expanded information access but didn't solve the problem of interpretation and reasoning."
+            },
+            {
+                "title": "Organizational Barriers",
+                "text": "Businesses struggle to analyze vast data, automate complex workflows, and scale knowledge."
+            },
+            {
+                "title": "Information Overload",
+                "text": "Extracting useful insights from the ever-growing volume of digital information is increasingly difficult."
+            },
+            {
+                "title": "Rigid Software",
+                "text": "Traditional tools solve narrow tasks but lack the ability to reason, adapt, and interact naturally with humans."
+            }
+        ]
+    },
+    {
+        "template": "hero_dark",
+        "title": "Our Approach: General-Purpose AI Systems",
+        "text": "<ul><li>Instead of narrow tools, we build foundation models applicable to countless domains.</li><li>These models are scaled using massive datasets and compute resources.</li><li>We enable powerful capabilities in reasoning, language understanding, and problem-solving through simple interfaces.</li></ul>"
+    },
+    {
+        "template": "method_process",
+        "title": "The OpenAI Platform Strategy",
+        "steps": [
+            {
+                "title": "Frontier Foundation Models",
+                "text": "<ul><li>Develop the core intelligence layer for language, images, audio, and other modalities.</li></ul>"
+            },
+            {
+                "title": "Developer Tools & APIs",
+                "text": "<ul><li>Enable organizations to integrate advanced AI into their products and workflows.</li></ul>"
+            },
+            {
+                "title": "User-Facing Products",
+                "text": "<ul><li>Make AI accessible to individuals through natural, conversational interfaces.</li></ul>"
+            },
+            {
+                "title": "Alignment & Safety Research",
+                "text": "<ul><li>Ensure that increasingly capable AI systems behave reliably and remain beneficial to humanity.</li></ul>"
+            }
+        ]
+    },
+    {
+        "template": "columns_smart",
+        "title": "Core Technology Stack",
+        "features": [
+            {
+                "title": "Large Language Models",
+                "text": "The backbone of our system, trained to understand and generate text for complex tasks."
+            },
+            {
+                "title": "Multimodal Models",
+                "text": "Extend capabilities beyond text to process and generate images, audio, and video."
+            },
+            {
+                "title": "Reinforcement Learning",
+                "text": "Refines model behavior to align with human preferences, making them more helpful and safe."
+            },
+            {
+                "title": "Large-Scale Infrastructure",
+                "text": "Massive computational resources and specialized techniques to train frontier models efficiently."
+            }
+        ]
+    },
+    {
+        "template": "hero_dark",
+        "title": "The Ecosystem Effect: A Foundation for Innovation",
+        "text": "<ul><li>Our API platform allows developers to build their own AI-powered solutions.</li><li>This approach enables our technology to scale rapidly across all industries.</li><li>The ecosystem significantly expands the reach and impact of our core research.</li></ul>"
+    },
+    {
+        "template": "columns_smart",
+        "title": "Applications Powered by the Ecosystem",
+        "features": [
+            {
+                "title": "Enterprise Automation",
+                "text": "Powering customer support, document analysis, and software development assistants."
+            },
+            {
+                "title": "Creative Content",
+                "text": "Tools for generating novel text, images, and other creative media."
+            },
+            {
+                "title": "Personalized Education",
+                "text": "AI tutors that adapt to individual learning styles and needs."
+            },
+            {
+                "title": "Scientific Research",
+                "text": "Accelerating discovery by analyzing complex medical and scientific data."
+            }
+        ]
+    },
+    {
+        "template": "hero_dark",
+        "title": "A Trillion-Dollar Market Opportunity",
+        "text": "<ul><li>The global AI market is projected to exceed $1 trillion in the coming decade.</li><li>AI is becoming a foundational layer of the digital economy, similar to cloud computing.</li><li>OpenAI operates at the intersection of research, infrastructure, enterprise, and consumer markets.</li></ul>"
+    },
+    {
+        "template": "challenge_solution",
+        "title": "Societal Impact: Benefits and Responsibilities",
+        "text": "<ul><li><strong>Democratizing Expertise:</strong> Making specialized knowledge in education and healthcare accessible to all.</li><li><strong>Productivity Gains:</strong> Automating routine tasks and enabling faster innovation cycles across industries.</li><li><strong>Managing Risks:</strong> Addressing potential misuse, economic disruption, and alignment challenges through responsible development.</li></ul>"
+    },
+    {
+        "template": "method_process",
+        "title": "Our Commitment to Safety and Alignment",
+        "steps": [
+            {
+                "title": "Alignment Research",
+                "text": "<ul><li>Ensuring AI systems behave according to human intentions and values, using techniques like RLHF.</li></ul>"
+            },
+            {
+                "title": "Misuse Prevention",
+                "text": "<ul><li>Developing robust policies and monitoring systems to detect and prevent harmful use of our technology.</li></ul>"
+            },
+            {
+                "title": "Industry Collaboration",
+                "text": "<ul><li>Working with policymakers, academics, and partners to establish standards for responsible AI deployment.</li></ul>"
+            }
+        ]
+    },
+    {
+        "template": "hero_dark",
+        "title": "Long-Term Vision: The Path to AGI",
+        "text": "<ul><li>Our vision is the development of Artificial General Intelligence—systems that can perform most intellectual tasks humans can.</li><li>AGI could help solve global challenges like climate change and disease.</li><li>Achieving this requires careful planning, responsible governance, and broad collaboration to ensure shared benefits.</li></ul>"
+    },
+    {
+        "template": "end",
+        "title": "Thank You",
+        "text": "<ul><li>OpenAI's mission is to build advanced technology and ensure the future of artificial intelligence is aligned with the interests of humanity.</li></ul>"
+    }
+]
