@@ -1,4 +1,4 @@
-# SlidesAI 🚀
+# SlidesAI
 
 Give this tool a PDF or text file, it automatically extracts the content and builds beautiful PDF slides.
 
