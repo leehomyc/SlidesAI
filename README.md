@@ -132,17 +132,21 @@ options:
 
 If you prefer finer control, you can run each step individually:
 
-### Step 1: Extract Content from your PDF
-Use the extraction script to pull text and figures out of your source document. 
-
+### Step 1: `extract_with_marker.py` — Extract Content from PDF
 ```bash
 python3 extract_with_marker.py --pdf_path my_paper.pdf --output_dir my_project/
 ```
-*(This will generate a markdown file and an `images/` folder in the specified output directory).*
+Generates a markdown file and an `images/` folder in the output directory.
 
-### Step 2: Generate the Presentation Markdown
-Feed the extracted content into the AI slide builder. You can control the theme, verbosity, and length.
+```
+options:
+  --pdf_path       Path to input PDF
+  --output_dir     Directory for output assets (default: same directory as PDF)
+  --page_range     Page range to extract, e.g. 0-5, 10, 12-14 (default: all pages)
+  --disable_ocr    Disable OCR and rely on embedded PDF text (default: OCR enabled)
+```
 
+### Step 2: `build_slides.py` — Generate Presentation Markdown
 ```bash
 python3 build_slides.py \
     --input_file my_project/my_paper.md \
@@ -152,28 +156,6 @@ python3 build_slides.py \
     --verbosity normal
 ```
 
-### Step 3: Render to PDF
-Finally, turn the generated markdown into a beautiful, shareable PDF. Our rendering script ensures local images and HTML are enabled, matching VS Code's Marp export exactly.
-
-```bash
-python3 render_marp_pdf.py my_project/my_presentation.md
-```
-*The script will automatically find your Marp installation and Chrome browser to output `my_project/my_presentation.pdf`.*
-
----
-
-## 🎛️ Advanced CLI Reference
-
-### `extract_with_marker.py`
-```
-options:
-  --pdf_path       Path to input PDF
-  --output_dir     Directory for output assets (default: same directory as PDF)
-  --page_range     Page range to extract, e.g. 0-5, 10, 12-14 (default: all pages)
-  --disable_ocr    Disable OCR and rely on embedded PDF text (default: OCR enabled)
-```
-
-### `build_slides.py`
 ```
 options:
   --input_file     Path to your extracted content markdown
@@ -187,7 +169,12 @@ options:
   --use_cached     Skip the LLM call and reuse a previously saved response (default: off)
 ```
 
-### `render_marp_pdf.py`
+### Step 3: `render_marp_pdf.py` — Render to PDF
+```bash
+python3 render_marp_pdf.py my_project/my_presentation.md
+```
+Automatically finds your Marp installation and Chrome to output `my_project/my_presentation.pdf`.
+
 ```
 options:
   input_md         Path to the Marp markdown file
