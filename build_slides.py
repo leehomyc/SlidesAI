@@ -4467,7 +4467,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_cached", action="store_true", help="Use cached llm_response_raw.txt instead of calling LLM")
     parser.add_argument("--verbosity", default="normal", choices=["concise", "normal", "detailed"], help="Control how much text the LLM generates per slide: 'concise' (≤2 short bullets), 'normal' (2-4 bullets), 'detailed' (3-5 full bullets)")
     parser.add_argument("--provider", default=None, choices=["google", "openrouter", "openai", "anthropic"], help="LLM provider to use (overrides LLM_PROVIDER in project_secrets.py)")
-    parser.add_argument("--model", default=None, help="Model name to use (e.g. gpt-4o, claude-sonnet-4-6, gemini-2.5-pro). Defaults to the provider's recommended model.")
+    parser.add_argument("--model", default=None, help="Model name to use (e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview). Defaults to the provider's recommended model.")
     args = parser.parse_args()
 
     if args.output_file is None:

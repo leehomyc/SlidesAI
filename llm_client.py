@@ -36,9 +36,9 @@ except ImportError:
 
 # Default model per provider (used when model=None is passed to generate())
 DEFAULT_MODELS = {
-    "google": "gemini-2.5-pro",
-    "openrouter": "gemini-2.5-pro",
-    "openai": "gpt-4o",
+    "google": "gemini-3-pro-preview",
+    "openrouter": "gemini-3-pro-preview",
+    "openai": "gpt-5.2",
     "anthropic": "claude-opus-4-6",
 }
 
@@ -126,8 +126,8 @@ class LLMClient:
         Args:
             prompt: Prompt text
             model: Model name. If None, uses the default for the current provider.
-                   Google format names (e.g. "gemini-2.5-pro") are auto-converted for OpenRouter.
-                   For OpenAI use e.g. "gpt-4o"; for Anthropic use e.g. "claude-sonnet-4-6".
+                   Google format names (e.g. "gemini-3-pro-preview") are auto-converted for OpenRouter.
+                   For OpenAI use e.g. "gpt-5.2"; for Anthropic use e.g. "claude-sonnet-4-6".
             json_mode: Whether to request JSON output
 
         Returns:
@@ -160,6 +160,8 @@ class LLMClient:
     def _generate_openrouter(self, prompt: str, model: str, json_mode: bool) -> str:
         """Generate via OpenRouter API"""
         model_mapping = {
+            "gemini-3-pro-preview": "google/gemini-3-pro-preview",
+            "gemini-3-flash-preview": "google/gemini-3-flash-preview",
             "gemini-2.5-pro": "google/gemini-2.5-pro",
             "gemini-2.5-flash": "google/gemini-2.5-flash",
             "gemini-2.0-flash": "google/gemini-2.0-flash",
@@ -167,6 +169,7 @@ class LLMClient:
             "gemini-1.5-flash": "google/gemini-1.5-flash",
             "claude-opus-4-6": "anthropic/claude-opus-4-6",
             "claude-sonnet-4-6": "anthropic/claude-sonnet-4-6",
+            "gpt-5.2": "openai/gpt-5.2",
             "gpt-4o": "openai/gpt-4o",
         }
         openrouter_model = model_mapping.get(model, model)

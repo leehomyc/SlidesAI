@@ -90,7 +90,7 @@ def parse_args() -> argparse.Namespace:
     slide_group.add_argument(
         "--model",
         default=None,
-        help="Model name (e.g. gpt-4o, claude-sonnet-4-6, gemini-2.5-pro). Defaults to the provider's recommended model.",
+        help="Model name (e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview). Defaults to the provider's recommended model.",
     )
     slide_group.add_argument(
         "--use_cached",
