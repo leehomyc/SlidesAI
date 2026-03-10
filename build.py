@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import argparse
 import os
+import shlex
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -29,19 +31,67 @@ TEXT_EXTENSIONS = {".txt", ".md", ".markdown", ".text", ".rst"}
 PDF_EXTENSIONS = {".pdf"}
 
 
-def run_step(description: str, cmd: list[str], cwd: str | None = None) -> None:
-    """Run a subprocess step, printing a banner and aborting on failure."""
-    separator = "─" * 60
-    print(f"\n{separator}")
-    print(f"  ▶  {description}")
-    print(separator)
-    print(f"  Command: {' '.join(cmd)}\n")
+def run_step(
+    step_num: int,
+    total_steps: int,
+    description: str,
+    cmd: list[str],
+    *,
+    log_prefix: str,
+    cwd: str | None = None,
+    expected_outputs: list[Path] | None = None,
+) -> None:
+    """Run a subprocess step, stream logs live, and abort on failure."""
+    separator = "─" * 72
+    print(f"\n{separator}", flush=True)
+    print(f"  ▶  Step {step_num}/{total_steps} — {description}", flush=True)
+    print(separator, flush=True)
+    print(f"  Working dir: {cwd or os.getcwd()}", flush=True)
+    print(f"  Command:     {shlex.join(cmd)}", flush=True)
+    if expected_outputs:
+        print("  Expected:", flush=True)
+        for output_path in expected_outputs:
+            print(f"    - {output_path}", flush=True)
+    print(f"  Streaming logs with prefix [{log_prefix}] ...\n", flush=True)
 
-    result = subprocess.run(cmd, cwd=cwd)
-    if result.returncode != 0:
-        print(f"\n  ✗  Step failed with exit code {result.returncode}", file=sys.stderr)
-        sys.exit(result.returncode)
-    print(f"  ✓  {description} — done")
+    env = os.environ.copy()
+    env.setdefault("PYTHONUNBUFFERED", "1")
+
+    start = time.monotonic()
+    process = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+
+    assert process.stdout is not None
+    for raw_line in process.stdout:
+        line = raw_line.rstrip("\n")
+        if line:
+            print(f"[{log_prefix}] {line}", flush=True)
+        else:
+            print(f"[{log_prefix}]", flush=True)
+
+    result = process.wait()
+    elapsed = time.monotonic() - start
+    if result != 0:
+        print(
+            f"\n  ✗  Step {step_num}/{total_steps} failed with exit code {result} after {elapsed:.1f}s",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(result)
+
+    print(f"\n  ✓  Step {step_num}/{total_steps} finished in {elapsed:.1f}s", flush=True)
+    if expected_outputs:
+        for output_path in expected_outputs:
+            if output_path.exists():
+                print(f"     Output ready: {output_path}", flush=True)
+    print(flush=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -133,6 +183,7 @@ def main() -> int:
         is_text = True
 
     output_dir = resolve_output_dir(input_path, args.output_dir)
+    total_steps = (1 if is_pdf else 0) + 1 + (0 if args.skip_pdf else 1)
 
     print("╔════════════════════════════════════════════════════════════╗")
     print("║               SlidesAI — One-Click Build                  ║")
@@ -142,8 +193,16 @@ def main() -> int:
     print(f"  Mode:       {'PDF extraction → slides → render' if is_pdf else 'Text → slides → render'}")
     print(f"  Theme:      {args.theme}")
     print(f"  Provider:   {args.provider or 'from project_secrets.py'}")
+    print(f"  Model:      {args.model or 'provider default'}")
+    print(f"  Verbosity:  {args.verbosity}")
+    print(f"  Use cache:  {'yes' if args.use_cached else 'no'}")
+    if is_pdf:
+        print(f"  Page range: {args.page_range or 'all pages'}")
+        print(f"  OCR:        {'disabled' if args.disable_ocr else 'enabled'}")
+    print(f"  Skip PDF:   {'yes' if args.skip_pdf else 'no'}")
 
     # ── STEP 1: Extract (PDF only) ──────────────────────────────────
+    current_step = 1
     if is_pdf:
         extract_cmd = [
             sys.executable,
@@ -156,11 +215,23 @@ def main() -> int:
         if args.disable_ocr:
             extract_cmd.append("--disable_ocr")
 
-        run_step("Step 1/3 — Extracting content from PDF", extract_cmd)
+        run_step(
+            current_step,
+            total_steps,
+            "Extracting content from PDF",
+            extract_cmd,
+            log_prefix="extract",
+            expected_outputs=[
+                output_dir / "extracted_content.md",
+                output_dir / "assets_map.json",
+            ],
+        )
         slides_input = output_dir / "extracted_content.md"
+        current_step += 1
     else:
         print("\n  ⏭  Skipping extraction (input is already text)")
         slides_input = input_path
+        print(f"     Using input directly: {slides_input}")
 
     # ── STEP 2: Build presentation markdown ─────────────────────────
     slides_output = output_dir / f"{input_path.stem}_slides.md"
@@ -181,8 +252,18 @@ def main() -> int:
     if args.use_cached:
         build_cmd.append("--use_cached")
 
-    step_label = "Step 2/3" if is_pdf else "Step 1/2"
-    run_step(f"{step_label} — Generating presentation with AI", build_cmd)
+    run_step(
+        current_step,
+        total_steps,
+        "Generating presentation markdown",
+        build_cmd,
+        log_prefix="build_slides",
+        expected_outputs=[
+            slides_output,
+            output_dir / "llm_response_raw.txt",
+        ],
+    )
+    current_step += 1
 
     # ── STEP 3: Render to PDF ───────────────────────────────────────
     if args.skip_pdf:
@@ -198,8 +279,14 @@ def main() -> int:
         if args.marp_binary != "marp":
             render_cmd.extend(["--marp-binary", args.marp_binary])
 
-        step_label = "Step 3/3" if is_pdf else "Step 2/2"
-        run_step(f"{step_label} — Rendering slides to PDF", render_cmd)
+        run_step(
+            current_step,
+            total_steps,
+            "Rendering slides to PDF",
+            render_cmd,
+            log_prefix="render_marp_pdf",
+            expected_outputs=[pdf_output],
+        )
 
     # ── Summary ─────────────────────────────────────────────────────
     print("\n╔════════════════════════════════════════════════════════════╗")
