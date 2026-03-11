@@ -25,7 +25,7 @@ Give this tool a PDF or text file, it automatically extracts the content and bui
 ---
 
 ## ✨ Features
-- **Smart Extraction:** Pulls text, tables, LaTeX equations, and figures from PDFs and Markdown files using `marker`.
+- **Smart Extraction:** Pulls text, tables, LaTeX equations, and figures from PDFs automatically.
 - **LLM-Powered Writing:** Works with Gemini, OpenAI, Claude, and OpenRouter. Adjustable verbosity: concise, normal, or detailed.
 - **Academic & General Purpose:** Built for research and technical content, but works for any topic or industry.
 - **9 Handcrafted Themes:** Professionally designed styles with curated typography and color palettes (see below).
