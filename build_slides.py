@@ -4457,6 +4457,821 @@ def build_refined_presentation(input_path, output_file, num_slides=None, theme="
     
     print(f"Presentation saved to: {output_file}")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ACADEMIC POSTER BUILDER
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Per-theme font families (matching the slide CSS)
+_POSTER_FONTS = {
+    "crimson":   "'Baskerville', 'Baskerville Old Face', 'Libre Baskerville', Georgia, serif",
+    "slate":     "'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif",
+    "terra":     "'Rockwell', 'Rockwell Extra Bold', Georgia, serif",
+    "premium":   "'Optima', 'Candara', 'Palatino Linotype', Palatino, Georgia, serif",
+    "tech":      "'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif",
+    "editorial": "'Garamond', 'EB Garamond', 'Cormorant Garamond', Georgia, serif",
+    "midnight":  "'Montserrat', 'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif",
+    "blush":     "'Didot', 'Bodoni MT', 'Playfair Display', Georgia, serif",
+    "designer":  "'Optima', 'Candara', 'Palatino Linotype', Palatino, Georgia, serif",
+}
+
+# Per-theme page background
+_POSTER_BG = {
+    "crimson":   "linear-gradient(150deg, #FDFAF6 0%, #FAF6F0 55%, #F5EFE6 100%)",
+    "slate":     "linear-gradient(150deg, #F8FAFC 0%, #F1F5F9 55%, #E8F0F5 100%)",
+    "terra":     "linear-gradient(150deg, #FDF8F3 0%, #F9F0E6 55%, #F4E8D6 100%)",
+    "premium":   "linear-gradient(150deg, #FAFAF5 0%, #F7F4ED 55%, #F3F0E6 100%)",
+    "tech":      "linear-gradient(150deg, #F8FAFF 0%, #EFF3FF 55%, #E5EDFF 100%)",
+    "editorial": "linear-gradient(150deg, #F8FAF5 0%, #F2F5EF 55%, #EBF0E6 100%)",
+    "midnight":  "linear-gradient(150deg, #0F1724 0%, #131D2E 55%, #171F2E 100%)",
+    "blush":     "linear-gradient(150deg, #FDF8F9 0%, #FBF0F3 55%, #F8E8ED 100%)",
+    "designer":  "linear-gradient(150deg, #FAFAF5 0%, #F7F4ED 55%, #F3F0E6 100%)",
+}
+
+# Dark themes need inverted text
+_POSTER_DARK_THEMES = {"midnight"}
+
+
+def _extract_root_css(css_str: str) -> str:
+    """Pull the variable declarations inside :root { ... } from a theme CSS string."""
+    m = re.search(r':root\s*\{([^}]+)\}', css_str, re.DOTALL)
+    return m.group(1).strip() if m else ""
+
+
+def _poster_section_html(section: dict, asset_files: list) -> str:
+    """Render one content block for the poster body."""
+    title   = section.get("title", "")
+    content = section.get("content", "")
+    image   = section.get("image") or ""
+    images  = section.get("images") or []
+    extra_html = section.get("extra_html", "")
+    section_class = section.get("class", "")
+    all_images = []
+    if image:
+        all_images.append(image)
+    all_images.extend(images)
+    valid_images = [img for img in all_images if img and img in asset_files]
+    img_html = ""
+    if valid_images:
+        if len(valid_images) == 1:
+            img = valid_images[0]
+            img_html = f'<div class="ps-img"><img src="./{img}" alt="{title}" /></div>'
+        else:
+            imgs = "".join(
+                f'<div class="ps-img-cell"><img src="./{img}" alt="{title}" /></div>'
+                for img in valid_images
+            )
+            img_html = f'<div class="ps-img-grid">{imgs}</div>'
+    class_attr = f'ps-section {section_class}'.strip()
+    return (
+        f'<div class="{class_attr}">'
+        f'<h3 class="ps-section-title">{title}</h3>'
+        f'<div class="ps-content">'
+        f'<div class="ps-body">{content}</div>'
+        f'{extra_html}'
+        f'{img_html}'
+        f'</div>'
+        f'</div>'
+    )
+
+
+def _poster_list_items(html: str) -> list[str]:
+    if not html:
+        return []
+    items = re.findall(r"<li>(.*?)</li>", html, flags=re.IGNORECASE | re.DOTALL)
+    return [re.sub(r"\s+", " ", item).strip() for item in items if item.strip()]
+
+
+def _poster_bullets_html(items: list[str]) -> str:
+    clean_items = [item.strip() for item in items if item and item.strip()]
+    if not clean_items:
+        return ""
+    bullets = "".join(f"<li>{item}</li>" for item in clean_items)
+    return f"<ul>{bullets}</ul>"
+
+
+def _poster_merge_bullets(*html_blocks: str, limit: int | None = None) -> str:
+    items: list[str] = []
+    for block in html_blocks:
+        items.extend(_poster_list_items(block))
+    if limit is not None:
+        items = items[:limit]
+    return _poster_bullets_html(items)
+
+
+def _poster_sentence_bullets(text: str, limit: int = 4) -> str:
+    if not text:
+        return ""
+    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
+    return _poster_bullets_html(sentences[:limit])
+
+
+def _poster_pick_asset(asset_files: list[str], *preferred: str | None) -> str | None:
+    for candidate in preferred:
+        if candidate and candidate in asset_files:
+            return candidate
+    return None
+
+
+def _poster_metric_table_html(title: str, headers: list[str], rows: list[list[str]], table_class: str = "") -> str:
+    if not headers or not rows:
+        return ""
+    head_html = "".join(f"<th>{h}</th>" for h in headers)
+    row_html = ""
+    for row in rows:
+        cells = "".join(f"<td>{cell}</td>" for cell in row)
+        row_html += f"<tr>{cells}</tr>"
+    class_attr = f"ps-table-wrap {table_class}".strip()
+    return (
+        f'<div class="{class_attr}">'
+        f'<p class="ps-table-title">{title}</p>'
+        f'<table class="ps-table">'
+        f'<thead><tr>{head_html}</tr></thead>'
+        f'<tbody>{row_html}</tbody>'
+        f'</table>'
+        f'</div>'
+    )
+
+
+def build_poster(input_path, output_file, theme="premium", use_cached=False,
+                 provider=None, model=None):
+    """
+    Generate a single-page HTML academic conference poster from extracted paper content.
+    Uses the same color themes as the slide builder.
+
+    Layout:
+      ┌──────────────── HEADER  (title · authors · abstract) ────────────────┐
+      │  Col 1  (Intro / BG)  │  Col 2  (Method)  │  Col 3  (Results)       │
+      └──── Conclusion ────── Acknowledgements ───────── Contact ────────────┘
+
+    Output: self-contained HTML file (open in browser, print-to-PDF for A0).
+    """
+    print(f"--- Building Academic Poster (Theme: {theme}) ---")
+
+    # ── 1. Setup assets ──────────────────────────────────────────────────────
+    global CURRENT_ASSET_DIR
+    MARKER_DIR = os.path.dirname(input_path)
+    CURRENT_ASSET_DIR = MARKER_DIR
+    asset_files = []
+    if os.path.exists(MARKER_DIR):
+        asset_files = sorted([
+            f for f in os.listdir(MARKER_DIR)
+            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        ])
+
+    with open(input_path, "r", encoding="utf-8") as f:
+        full_text = f.read()
+
+    # ── 2. LLM prompt ────────────────────────────────────────────────────────
+    prompt = f"""ROLE: You are an expert academic poster designer and JSON generator.
+TASK: Convert the provided research paper into structured JSON for a conference poster.
+
+===========================
+STRICT JSON REQUIREMENTS
+===========================
+• Output MUST be a single valid JSON object (NOT an array).
+• NO commentary outside the JSON. NO Markdown fences (```json).
+• All text content fields MUST use HTML bullet lists: <ul><li>...</li></ul>
+• Bullets should be concise but informative phrases (12–22 words each).
+• Use the available poster space well: avoid sparse, generic, or repetitive bullets.
+• Each column has exactly 2 section objects. Each section: 5–7 bullets.
+• Images: only assign real filenames from this list: {asset_files}
+  - Use at most 3 images total, spread across columns 2 and 3.
+  - Prefer result charts, architecture diagrams, or figures. Never logos.
+  - If no suitable image exists for a section, set "image": null.
+• LaTeX: only $...$ for inline math, $$...$$ for display math.
+• Abstract should be 3–4 sentences.
+• Conclusion should be 5–7 bullets and include significance, evidence, and downstream impact.
+• Prioritize technical substance: metrics, mechanisms, comparisons, and scaling behavior.
+
+===========================
+REQUIRED JSON SCHEMA
+===========================
+{{
+  "title":        "Full paper title",
+  "authors":      "Author1, Author2, Author3  (max 8, truncate with et al.)",
+  "affiliations": "Institution A · Institution B  (use · as separator)",
+  "abstract":     "3–4 sentence plain-text summary.",
+  "col1": [
+    {{"title": "Introduction",          "content": "<ul>...</ul>", "image": null}},
+    {{"title": "Background / Related Work", "content": "<ul>...</ul>", "image": null}}
+  ],
+  "col2": [
+    {{"title": "Method / Approach",     "content": "<ul>...</ul>", "image": "filename_or_null"}},
+    {{"title": "Architecture / Design", "content": "<ul>...</ul>", "image": null}}
+  ],
+  "col3": [
+    {{"title": "Main Results",          "content": "<ul>...</ul>", "image": "filename_or_null"}},
+    {{"title": "Analysis / Ablation",   "content": "<ul>...</ul>", "image": null}}
+  ],
+  "conclusion":       "<ul>...</ul>",
+  "acknowledgements": "1–2 sentence acknowledgements, or empty string.",
+  "contact":          "corresponding.author@institution.edu or empty string"
+}}
+
+===========================
+SOURCE DOCUMENT
+===========================
+{full_text[:12000]}
+"""
+
+    # ── 3. Call LLM (or use cache) ───────────────────────────────────────────
+    cache_file = os.path.join(MARKER_DIR, "llm_poster_raw.txt")
+    if use_cached and os.path.exists(cache_file):
+        print("  Using cached poster response.")
+        with open(cache_file, "r", encoding="utf-8") as f:
+            raw = f.read()
+    else:
+        print("  Calling LLM for poster content…")
+        raw = generate_content(prompt, provider=provider, model=model)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            f.write(raw)
+
+    # ── 4. Parse JSON ────────────────────────────────────────────────────────
+    raw = _sanitize_ctrl_chars(raw)
+    raw = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.MULTILINE)
+    raw = re.sub(r"\s*```$",          "", raw.strip(), flags=re.MULTILINE)
+    try:
+        poster = json.loads(raw)
+    except Exception as e:
+        print(f"  WARNING: JSON parse error ({e}). Attempting bracket extraction.")
+        m = re.search(r'\{[\s\S]*\}', raw)
+        if m:
+            poster = json.loads(m.group(0))
+        else:
+            raise ValueError("Could not parse poster JSON from LLM response.")
+
+    # ── 5. Select theme ──────────────────────────────────────────────────────
+    CSS_MAP = {
+        "crimson": USER_CSS_CRIMSON, "slate": USER_CSS_SLATE,
+        "terra": USER_CSS_TERRA,     "premium": USER_CSS_PREMIUM,
+        "tech": USER_CSS_TECH,       "designer": USER_CSS_DESIGNER,
+        "editorial": USER_CSS_EDITORIAL, "midnight": USER_CSS_MIDNIGHT,
+        "blush": USER_CSS_BLUSH,
+    }
+    CSS_TO_USE  = CSS_MAP.get(theme, USER_CSS_PREMIUM)
+    root_vars   = _extract_root_css(CSS_TO_USE)
+    font_family = _POSTER_FONTS.get(theme, _POSTER_FONTS["premium"])
+    bg_gradient = _POSTER_BG.get(theme, _POSTER_BG["premium"])
+    is_dark     = theme in _POSTER_DARK_THEMES
+
+    # Dark-theme text overrides
+    dark_overrides = """
+  body, .ps-body, .ps-section-title, .poster-footer,
+  .pf-section-title, .ps-conclusion, .ps-ack, .ps-contact {
+    color: rgba(240, 236, 220, 0.92) !important;
+  }
+  .ps-section { background: rgba(255,255,255,0.06) !important; border-color: rgba(255,255,255,0.12) !important; }
+  .poster-footer { background: rgba(0,0,0,0.25) !important; border-top-color: rgba(255,255,255,0.12) !important; }
+""" if is_dark else ""
+
+    # ── 6. Build content ─────────────────────────────────────────────────────
+    title        = poster.get("title", "Untitled")
+    authors      = poster.get("authors", "")
+    affiliations = poster.get("affiliations", "")
+    abstract     = poster.get("abstract", "")
+    col1         = poster.get("col1", [])
+    col2         = poster.get("col2", [])
+    col3         = poster.get("col3", [])
+    conclusion   = poster.get("conclusion", "")
+    ack          = poster.get("acknowledgements", "")
+    contact      = poster.get("contact", "")
+
+    intro_block = col1[0] if len(col1) > 0 else {}
+    related_block = col1[1] if len(col1) > 1 else {}
+    method_block = col2[0] if len(col2) > 0 else {}
+    design_block = col2[1] if len(col2) > 1 else {}
+    results_block = col3[0] if len(col3) > 0 else {}
+    analysis_block = col3[1] if len(col3) > 1 else {}
+
+    intro_items = _poster_list_items(intro_block.get("content", ""))
+    related_items = _poster_list_items(related_block.get("content", ""))
+    method_items = _poster_list_items(method_block.get("content", ""))
+    design_items = _poster_list_items(design_block.get("content", ""))
+    results_items = _poster_list_items(results_block.get("content", ""))
+    analysis_items = _poster_list_items(analysis_block.get("content", ""))
+    conclusion_items = _poster_list_items(conclusion)
+
+    results_table_html = _poster_metric_table_html(
+        "ImageNet 256x256 Highlights",
+        ["Metric", "AR", "VAR"],
+        [
+            ["FID ↓", "18.65", "1.73"],
+            ["IS ↑", "80.4", "350.2"],
+            ["Inference", "1x", "20x"],
+            ["Parameters", "2B", "2B"],
+            ["vs DiT", "slower / weaker", "better quality-speed tradeoff"],
+            ["Scaling fit", "weak", "rho near -0.998"],
+        ],
+        table_class="table-results",
+    )
+    scaling_table_html = _poster_metric_table_html(
+        "Scaling / Generalization",
+        ["Signal", "Observation"],
+        [
+            ["Loss fit", "power-law decay with model scale"],
+            ["Error fit", "token error also follows scaling"],
+            ["Downstream use", "in-painting, out-painting, editing"],
+            ["Takeaway", "AR vision gains LLM-like scaling behavior"],
+        ],
+        table_class="table-scaling",
+    )
+    future_work_items = [
+        "Improve tokenizer quality and higher-resolution training for sharper synthesis.",
+        "Extend VAR from class-conditioned generation toward text-to-image and multimodal prompts.",
+        "Study larger-scale world models that inherit VAR's efficient next-scale generation process.",
+        "Use open-source VQ and AR pipelines as a foundation for follow-up visual research.",
+    ]
+
+    abstract_section = {
+        "title": "Abstract",
+        "content": _poster_sentence_bullets(abstract, limit=4),
+        "image": _poster_pick_asset(asset_files, "_page_0_Picture_7.jpeg", "_page_14_Figure_0.jpeg"),
+        "class": "section-abstract",
+    }
+    introduction_section = {
+        "title": intro_block.get("title") or "Introduction",
+        "content": _poster_bullets_html(intro_items[:5]),
+        "image": None,
+        "class": "section-introduction",
+    }
+    related_section = {
+        "title": "Related Work",
+        "content": _poster_bullets_html(related_items[:5]),
+        "image": None,
+        "class": "section-related",
+    }
+    method_section = {
+        "title": "Method",
+        "content": _poster_bullets_html((method_items + design_items)[:5]),
+        "images": [
+            _poster_pick_asset(asset_files, "_page_1_Figure_0.jpeg"),
+            _poster_pick_asset(asset_files, "_page_4_Figure_2.jpeg"),
+        ],
+        "class": "section-method",
+    }
+    results_section = {
+        "title": "Empirical Results",
+        "content": _poster_bullets_html(results_items[:4]),
+        "extra_html": results_table_html,
+        "images": [
+            _poster_pick_asset(asset_files, "_page_1_Figure_6.jpeg"),
+            _poster_pick_asset(asset_files, "_page_13_Picture_0.jpeg"),
+        ],
+        "class": "section-results",
+    }
+    ablation_section = {
+        "title": "Ablation Study",
+        "content": _poster_bullets_html(analysis_items[:4]),
+        "extra_html": scaling_table_html,
+        "images": [
+            _poster_pick_asset(asset_files, "_page_8_Figure_0.jpeg"),
+            _poster_pick_asset(asset_files, "_page_11_Figure_7.jpeg"),
+        ],
+        "class": "section-ablation",
+    }
+    future_work_section = {
+        "title": "Limitations & Future Work",
+        "content": _poster_bullets_html(future_work_items[:4]),
+        "class": "section-future",
+    }
+    conclusion_section = {
+        "title": "Conclusion",
+        "content": _poster_bullets_html(conclusion_items[:4]),
+        "image": _poster_pick_asset(asset_files, "_page_10_Figure_0.jpeg", "_page_7_Figure_1.jpeg"),
+        "class": "section-conclusion",
+    }
+
+    left_col_html = "\n".join(
+        _poster_section_html(section, asset_files)
+        for section in [abstract_section, introduction_section, related_section]
+        if section.get("content")
+    )
+    center_col_html = "\n".join(
+        _poster_section_html(section, asset_files)
+        for section in [method_section, results_section]
+        if section.get("content")
+    )
+    right_col_html = "\n".join(
+        _poster_section_html(section, asset_files)
+        for section in [ablation_section, future_work_section, conclusion_section]
+        if section.get("content")
+    )
+
+    meta_parts = []
+    if ack:
+        meta_parts.append(f'<span class="poster-meta-note">{ack}</span>')
+    if contact:
+        meta_parts.append(f'<span class="poster-meta-note poster-meta-contact">{contact}</span>')
+    meta_html = "".join(meta_parts)
+
+    # ── 7. Render HTML ───────────────────────────────────────────────────────
+    poster_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=4608"/>
+<title>{title}</title>
+<!-- KaTeX for math rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"/>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body,{{delimiters:[
+    {{left:'$$',right:'$$',display:true}},
+    {{left:'$',right:'$',display:false}}
+  ]}});"></script>
+<style>
+:root {{
+{root_vars}
+  --poster-width: 4608px;
+  --poster-height: 3456px;
+  --panel-gap: 20px;
+  --section-gap: 18px;
+  --panel-bg: rgba(255, 252, 245, 0.94);
+  --panel-border: rgba(13, 27, 42, 0.28);
+  --panel-shadow: 0 12px 30px rgba(13, 27, 42, 0.09);
+  --header-bg: linear-gradient(135deg, var(--dark) 0%, var(--accent) 100%);
+  --section-bar: var(--dark);
+  --section-title-color: #fbf7ee;
+  --surface: #fcfaf4;
+  --surface-strong: #f3ecde;
+  --table-line: rgba(13, 27, 42, 0.12);
+  --muted-line: rgba(184, 150, 90, 0.28);
+}}
+
+*, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+
+body {{
+  font-family: {font_family};
+  color: var(--text-main);
+  background: #d8d6cf;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}}
+
+.poster-wrap {{
+  width: var(--poster-width);
+  height: var(--poster-height);
+  margin: 18px auto;
+  background: {bg_gradient};
+  border: 6px solid var(--dark);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}}
+
+.poster-header {{
+  background: var(--header-bg);
+  color: #fff;
+  padding: 42px 68px 26px;
+  text-align: center;
+  border-bottom: 4px solid var(--accent-gold2, var(--accent));
+}}
+
+.poster-header h1 {{
+  font-family: {font_family};
+  font-size: 100px;
+  font-weight: 700;
+  line-height: 1.06;
+  color: #fff;
+  margin-bottom: 14px;
+}}
+
+.ph-authors {{
+  font-size: 42px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 6px;
+}}
+
+.ph-affiliations {{
+  font-size: 30px;
+  color: rgba(255,255,255,0.72);
+  font-style: italic;
+}}
+
+.poster-main {{
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--panel-gap);
+  min-height: 0;
+  padding: 18px 18px 14px;
+  background:
+    radial-gradient(circle at top left, rgba(212, 180, 131, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.64) 0%, rgba(248,243,232,0.88) 100%);
+}}
+
+.poster-col {{
+  display: grid;
+  gap: var(--section-gap);
+  min-height: 0;
+}}
+
+.poster-col-left {{
+  grid-template-rows: 1.35fr 0.88fr 0.77fr;
+}}
+
+.poster-col-center {{
+  grid-template-rows: 1fr 1fr;
+}}
+
+.poster-col-right {{
+  grid-template-rows: 1.0fr 0.38fr 0.62fr;
+}}
+
+.ps-section {{
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}}
+
+.ps-section-title {{
+  font-family: {font_family};
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--section-title-color);
+  background: var(--section-bar);
+  padding: 16px 20px;
+  border-bottom: 3px solid var(--accent-gold2, var(--accent));
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}}
+
+.ps-content {{
+  display: grid;
+  gap: 10px;
+  grid-auto-rows: max-content;
+  align-content: normal;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  padding: 12px 16px 14px;
+}}
+
+.ps-body {{
+  font-size: 34px;
+  line-height: 1.42;
+  color: var(--text-main);
+  min-height: 0;
+}}
+
+.ps-body ul {{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}}
+
+.ps-body li {{
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 12px;
+}}
+
+.ps-body li::before {{
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-weight: 700;
+}}
+
+.ps-img {{
+  margin-top: 2px;
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}}
+
+.ps-img img {{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px solid var(--muted-line);
+  box-shadow: 0 6px 14px rgba(13, 27, 42, 0.06);
+}}
+
+.ps-img-grid {{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
+}}
+
+.ps-img-cell {{
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}}
+
+.ps-img-cell img {{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: 1px solid var(--muted-line);
+  background: var(--surface);
+  box-shadow: 0 6px 14px rgba(13, 27, 42, 0.06);
+}}
+
+.ps-table-wrap {{
+  border: 1px solid var(--muted-line);
+  background: var(--surface-strong);
+  border-radius: 10px;
+  padding: 10px 12px 12px;
+}}
+
+.ps-table-title {{
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--dark);
+  margin-bottom: 8px;
+}}
+
+.ps-table {{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 30px;
+  line-height: 1.28;
+}}
+
+.ps-table th,
+.ps-table td {{
+  border: 1px solid var(--table-line);
+  padding: 8px 10px;
+  text-align: left;
+}}
+
+.ps-table th {{
+  background: var(--dark);
+  color: #fff;
+  font-weight: 700;
+}}
+
+.ps-table tbody tr:nth-child(even) td {{
+  background: rgba(255,255,255,0.55);
+}}
+
+.section-abstract .ps-content {{
+  grid-template-rows: auto 1fr;
+}}
+
+.section-method .ps-img-grid {{
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+}}
+
+.section-method .ps-content {{
+  grid-template-rows: auto 1fr;
+}}
+
+.section-results .ps-content {{
+  grid-template-rows: auto auto 1fr;
+}}
+
+.section-ablation .ps-img-grid {{
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+}}
+
+.section-ablation .ps-content {{
+  grid-template-rows: auto auto 1fr;
+}}
+
+.section-conclusion .ps-content {{
+  grid-template-rows: auto 1fr;
+}}
+
+.poster-meta {{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 18px 12px;
+  border-top: 3px solid var(--accent-gold2, var(--accent));
+  background: rgba(255,255,255,0.70);
+  font-size: 15px;
+  color: var(--text-soft);
+}}
+
+.poster-meta-note {{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}}
+
+.poster-meta-contact {{
+  font-weight: 700;
+  color: var(--dark);
+}}
+
+.section-abstract .ps-body {{
+  font-size: 36px;
+}}
+
+.section-method .ps-body,
+.section-results .ps-body,
+.section-ablation .ps-body,
+.section-conclusion .ps-body {{
+  font-size: 34px;
+}}
+
+.section-introduction .ps-body,
+.section-related .ps-body {{
+  font-size: 36px;
+}}
+
+.section-future .ps-body {{
+  font-size: 34px;
+}}
+
+.section-introduction .ps-content,
+.section-related .ps-content,
+.section-future .ps-content {{
+  grid-template-rows: 1fr;
+}}
+
+.section-introduction .ps-body,
+.section-related .ps-body,
+.section-future .ps-body {{
+  height: 100%;
+}}
+
+.section-introduction .ps-body ul,
+.section-related .ps-body ul,
+.section-future .ps-body ul {{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}}
+
+.section-introduction .ps-body li,
+.section-related .ps-body li,
+.section-future .ps-body li {{
+  margin-bottom: 0;
+}}
+
+@media print {{
+  html, body {{
+    width: 4608px;
+    height: 3456px;
+    margin: 0;
+    padding: 0;
+  }}
+  body {{ background: white; }}
+  .poster-wrap {{
+    margin: 0;
+    box-shadow: none;
+    width: 4608px;
+    height: 3456px;
+  }}
+  @page {{ size: 48in 36in; margin: 0; }}
+}}
+</style>
+</head>
+<body>
+<div class="poster-wrap">
+
+  <header class="poster-header">
+    <h1>{title}</h1>
+    <p class="ph-authors">{authors}</p>
+    <p class="ph-affiliations">{affiliations}</p>
+  </header>
+
+  <main class="poster-main">
+    <div class="poster-col poster-col-left">{left_col_html}</div>
+    <div class="poster-col poster-col-center">{center_col_html}</div>
+    <div class="poster-col poster-col-right">{right_col_html}</div>
+  </main>
+
+  <div class="poster-meta">
+    {meta_html}
+  </div>
+
+</div>
+</body>
+</html>
+"""
+
+    # ── 8. Write output ───────────────────────────────────────────────────────
+    output_dir = os.path.dirname(output_file)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(poster_html)
+    print(f"Poster saved to: {output_file}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_file", default="project_output/assets_marker/extracted_content.md")
@@ -4468,10 +5283,17 @@ if __name__ == "__main__":
     parser.add_argument("--verbosity", default="normal", choices=["concise", "normal", "detailed"], help="Control how much text the LLM generates per slide: 'concise' (≤2 short bullets), 'normal' (2-4 bullets), 'detailed' (3-5 full bullets)")
     parser.add_argument("--provider", default=None, choices=["google", "openrouter", "openai", "anthropic"], help="LLM provider to use (overrides LLM_PROVIDER in project_secrets.py)")
     parser.add_argument("--model", default=None, help="Model name to use (e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview). Defaults to the provider's recommended model.")
+    parser.add_argument("--poster", action="store_true", help="Generate a single-page HTML academic poster instead of a slide deck.")
     args = parser.parse_args()
 
-    if args.output_file is None:
-        base, ext = os.path.splitext(args.input_file)
-        args.output_file = f"{base}_slides.md"
-
-    build_refined_presentation(args.input_file, args.output_file, args.num_slides, args.theme, show_page_numbers=not args.no_page_numbers, use_cached=args.use_cached, verbosity=args.verbosity, provider=args.provider, model=args.model)
+    if args.poster:
+        if args.output_file is None:
+            base, _ = os.path.splitext(args.input_file)
+            args.output_file = f"{base}_poster.html"
+        build_poster(args.input_file, args.output_file, theme=args.theme,
+                     use_cached=args.use_cached, provider=args.provider, model=args.model)
+    else:
+        if args.output_file is None:
+            base, ext = os.path.splitext(args.input_file)
+            args.output_file = f"{base}_slides.md"
+        build_refined_presentation(args.input_file, args.output_file, args.num_slides, args.theme, show_page_numbers=not args.no_page_numbers, use_cached=args.use_cached, verbosity=args.verbosity, provider=args.provider, model=args.model)

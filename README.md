@@ -1,8 +1,10 @@
 # SlidesAI
 
-Give this tool a PDF or text file, it automatically extracts the content and builds beautiful PDF slides.
+Give this tool a PDF or text file, it automatically extracts the content and builds beautiful PDF slides or a single-page academic poster.
 
 **Demos:** [OpenAI Pitch Deck](demo/openai_pitch/) ([source](demo/openai_pitch.txt)) · [Attention Is All You Need](demo/transformer/) ([source](demo/transformer.pdf))
+
+### Slide themes
 
 <table>
 <tr>
@@ -22,6 +24,15 @@ Give this tool a PDF or text file, it automatically extracts the content and bui
 </tr>
 </table>
 
+### Academic poster themes
+
+<table>
+<tr>
+  <td align="center"><img src="demo/screenshots/posters/var_poster_premium.png" width="560"/><br/><b>premium</b></td>
+  <td align="center"><img src="demo/screenshots/posters/var_poster_terra.png" width="560"/><br/><b>terra</b></td>
+</tr>
+</table>
+
 ---
 
 ## ✨ Features
@@ -29,6 +40,7 @@ Give this tool a PDF or text file, it automatically extracts the content and bui
 - **LLM-Powered Writing:** Works with Gemini, OpenAI, Claude, and OpenRouter. Adjustable verbosity: concise, normal, or detailed.
 - **Academic & General Purpose:** Built for research and technical content, but works for any topic or industry.
 - **9 Handcrafted Themes:** Professionally designed styles with curated typography and color palettes (see below).
+- **Academic Poster Generator:** Add `--poster` to produce a print-ready single-page HTML poster (A0 landscape) instead of a slide deck.
 
 ---
 
@@ -82,14 +94,23 @@ python3 build.py paper.pdf --theme slate --page_range 0-10 --num_slides 10 --ver
 # Use a different LLM provider
 python3 build.py paper.pdf --provider openai --model gpt-5.2
 python3 build.py paper.pdf --provider anthropic
+
+# Generate an academic poster (HTML) instead of slides
+python3 build.py paper.pdf --poster
+python3 build.py paper.pdf --poster --theme crimson
 ```
 
-Your presentation markdown and PDF will appear in an output folder named after your input file.
+Your output files will appear in a folder named after your input file.
+
+> **💡 Poster tip:** Open the generated `{input_name}_poster.html` in any browser and use **File → Print → Save as PDF** (set paper size to A0, landscape) for a print-ready conference poster.
 
 > **💡 Re-style without calling the LLM again:**
 > After your first build, a cached LLM response is saved. Re-run with `--use_cached` to try a different theme instantly — no API call needed:
 > ```bash
+> # Slides
 > python3 build.py paper.pdf --theme midnight --use_cached
+> # Poster
+> python3 build.py paper.pdf --poster --theme crimson --use_cached
 > ```
 
 ### `build.py` options
@@ -99,15 +120,16 @@ positional:
 
 options:
   -o, --output_dir   Output directory (default: folder named after input file)
-  --theme            Presentation theme (default: premium)
-  --num_slides       Target number of slides (default: 14-20)
-  --verbosity        Slide text density: concise | normal | detailed (default: normal)
+  --poster           Generate a single-page HTML academic poster instead of slides
+  --theme            Theme (default: premium)
+  --num_slides       Target number of slides — slides only (default: 14-20)
+  --verbosity        Slide text density: concise | normal | detailed — slides only (default: normal)
   --provider         LLM provider: google | openrouter | openai | anthropic (default: google)
   --model            Model name, e.g. gpt-5.2, claude-opus-4-6, gemini-3-pro-preview (default: provider's recommended model)
   --use_cached       Skip the LLM call and reuse the cached response (default: off)
   --page_range       Pages to extract from PDF, e.g. 0-5, 10 (default: all pages)
   --disable_ocr      Disable OCR for PDF extraction (default: OCR enabled)
-  --skip_pdf         Skip the final Marp-to-PDF render step (default: off)
+  --skip_pdf         Skip the final Marp-to-PDF render step — slides only (default: off)
 ```
 
 ---
@@ -146,7 +168,7 @@ options:
   --disable_ocr    Disable OCR and rely on embedded PDF text (default: OCR enabled)
 ```
 
-### Step 2: `build_slides.py` — Generate Presentation Markdown
+### Step 2a: `build_slides.py` — Generate Presentation Markdown
 ```bash
 python3 build_slides.py \
     --input_file my_project/my_paper.md \
@@ -165,9 +187,21 @@ options:
                    choices: designer | editorial | midnight | blush | tech | premium | terra | slate | crimson
   --verbosity      Slide text density: concise | normal | detailed (default: normal)
   --provider       LLM provider: google | openrouter | openai | anthropic (default: google)
-  --model          Model name, e.g. gpt-5.2, claude-sonnet-4-6, gemini-3-pro-preview (default: provider's recommended model)
+  --model          Model name (default: provider's recommended model)
   --use_cached     Skip the LLM call and reuse a previously saved response (default: off)
+  --no_page_numbers  Do not show page numbers on slides
+  --poster         Generate an HTML academic poster instead of a slide deck
 ```
+
+### Step 2b: `build_slides.py` — Generate Academic Poster (HTML)
+```bash
+python3 build_slides.py \
+    --input_file my_project/my_paper.md \
+    --output_file my_project/my_poster.html \
+    --theme premium \
+    --poster
+```
+Opens directly in the browser. Use **File → Print → Save as PDF** (A0 landscape) for a print-ready conference poster. A `llm_poster_raw.txt` cache file is saved alongside for fast re-theming with `--use_cached`.
 
 ### Step 3: `render_marp_pdf.py` — Render to PDF
 ```bash

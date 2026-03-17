@@ -5,9 +5,12 @@ Usage examples:
     # From a PDF (extracts content first, then builds slides, then renders PDF)
     python3 build.py paper.pdf
 
-    # From a text/markdown file (skips extraction, builds slides directly)
-    python3 build.py notes.txt
-    python3 build.py lecture.md
+    # From a text or markdown file (skips extraction, builds slides directly)
+    python3 build.py notes.txt --theme midnight
+
+    # Generate an academic poster (HTML) instead of a slide deck
+    python3 build.py paper.pdf --poster
+    python3 build.py paper.pdf --poster --theme crimson
 
     # With options
     python3 build.py paper.pdf --theme midnight --num_slides 20 --verbosity detailed
@@ -148,8 +151,15 @@ def parse_args() -> argparse.Namespace:
         help="Skip the LLM call and reuse the cached response from a previous run. Useful for re-styling with a different theme.",
     )
 
+    # --- Poster option ---
+    parser.add_argument(
+        "--poster",
+        action="store_true",
+        help="Generate a single-page HTML academic poster instead of a slide deck.",
+    )
+
     # --- Render options ---
-    render_group = parser.add_argument_group("PDF render options")
+    render_group = parser.add_argument_group("PDF render options (slides only)")
     render_group.add_argument("--skip_pdf", action="store_true", help="Skip the final Marp-to-PDF render step.")
     render_group.add_argument("--marp_binary", default="marp", help="Path to the Marp CLI binary.")
 
@@ -183,23 +193,33 @@ def main() -> int:
         is_text = True
 
     output_dir = resolve_output_dir(input_path, args.output_dir)
-    total_steps = (1 if is_pdf else 0) + 1 + (0 if args.skip_pdf else 1)
+
+    mode_label = "poster (HTML)" if args.poster else (
+        "PDF extraction → slides → render" if is_pdf else "Text → slides → render"
+    )
+    # Poster: extract + build (2 steps). Slides: extract + build + [render] (2–3 steps).
+    if args.poster:
+        total_steps = (1 if is_pdf else 0) + 1
+    else:
+        total_steps = (1 if is_pdf else 0) + 1 + (0 if args.skip_pdf else 1)
 
     print("╔════════════════════════════════════════════════════════════╗")
     print("║               SlidesAI — One-Click Build                  ║")
     print("╚════════════════════════════════════════════════════════════╝")
     print(f"  Input:      {input_path}")
     print(f"  Output dir: {output_dir}")
-    print(f"  Mode:       {'PDF extraction → slides → render' if is_pdf else 'Text → slides → render'}")
+    print(f"  Mode:       {mode_label}")
     print(f"  Theme:      {args.theme}")
     print(f"  Provider:   {args.provider or 'from project_secrets.py'}")
     print(f"  Model:      {args.model or 'provider default'}")
-    print(f"  Verbosity:  {args.verbosity}")
+    if not args.poster:
+        print(f"  Verbosity:  {args.verbosity}")
     print(f"  Use cache:  {'yes' if args.use_cached else 'no'}")
     if is_pdf:
         print(f"  Page range: {args.page_range or 'all pages'}")
         print(f"  OCR:        {'disabled' if args.disable_ocr else 'enabled'}")
-    print(f"  Skip PDF:   {'yes' if args.skip_pdf else 'no'}")
+    if not args.poster:
+        print(f"  Skip PDF:   {'yes' if args.skip_pdf else 'no'}")
 
     # ── STEP 1: Extract (PDF only) ──────────────────────────────────
     current_step = 1
@@ -226,76 +246,109 @@ def main() -> int:
                 output_dir / "assets_map.json",
             ],
         )
-        slides_input = output_dir / "extracted_content.md"
+        build_input = output_dir / "extracted_content.md"
         current_step += 1
     else:
         print("\n  ⏭  Skipping extraction (input is already text)")
-        slides_input = input_path
-        print(f"     Using input directly: {slides_input}")
+        build_input = input_path
+        print(f"     Using input directly: {build_input}")
 
-    # ── STEP 2: Build presentation markdown ─────────────────────────
-    slides_output = output_dir / f"{input_path.stem}_slides.md"
-    build_cmd = [
-        sys.executable,
-        str(SCRIPT_DIR / "build_slides.py"),
-        "--input_file", str(slides_input),
-        "--output_file", str(slides_output),
-        "--theme", args.theme,
-        "--verbosity", args.verbosity,
-    ]
-    if args.num_slides:
-        build_cmd.extend(["--num_slides", str(args.num_slides)])
-    if args.provider:
-        build_cmd.extend(["--provider", args.provider])
-    if args.model:
-        build_cmd.extend(["--model", args.model])
-    if args.use_cached:
-        build_cmd.append("--use_cached")
-
-    run_step(
-        current_step,
-        total_steps,
-        "Generating presentation markdown",
-        build_cmd,
-        log_prefix="build_slides",
-        expected_outputs=[
-            slides_output,
-            output_dir / "llm_response_raw.txt",
-        ],
-    )
-    current_step += 1
-
-    # ── STEP 3: Render to PDF ───────────────────────────────────────
-    if args.skip_pdf:
-        print("\n  ⏭  Skipping PDF render (--skip_pdf)")
-    else:
-        pdf_output = slides_output.with_suffix(".pdf")
-        render_cmd = [
+    if args.poster:
+        # ── STEP 2 (poster): Build HTML poster ──────────────────────
+        poster_output = output_dir / f"{input_path.stem}_poster.html"
+        build_cmd = [
             sys.executable,
-            str(SCRIPT_DIR / "render_marp_pdf.py"),
-            str(slides_output),
-            "--output", str(pdf_output),
+            str(SCRIPT_DIR / "build_slides.py"),
+            "--input_file", str(build_input),
+            "--output_file", str(poster_output),
+            "--theme", args.theme,
+            "--poster",
         ]
-        if args.marp_binary != "marp":
-            render_cmd.extend(["--marp-binary", args.marp_binary])
+        if args.provider:
+            build_cmd.extend(["--provider", args.provider])
+        if args.model:
+            build_cmd.extend(["--model", args.model])
+        if args.use_cached:
+            build_cmd.append("--use_cached")
 
         run_step(
             current_step,
             total_steps,
-            "Rendering slides to PDF",
-            render_cmd,
-            log_prefix="render_marp_pdf",
-            expected_outputs=[pdf_output],
+            "Generating academic poster (HTML)",
+            build_cmd,
+            log_prefix="build_poster",
+            expected_outputs=[poster_output],
         )
 
-    # ── Summary ─────────────────────────────────────────────────────
-    print("\n╔════════════════════════════════════════════════════════════╗")
-    print("║                     Build Complete! 🎉                    ║")
-    print("╚════════════════════════════════════════════════════════════╝")
-    print(f"  📝  Slides markdown : {slides_output}")
-    if not args.skip_pdf:
-        print(f"  📄  Slides PDF      : {slides_output.with_suffix('.pdf')}")
-    print()
+        print("\n╔════════════════════════════════════════════════════════════╗")
+        print("║                     Build Complete!                       ║")
+        print("╚════════════════════════════════════════════════════════════╝")
+        print(f"  🪧  Poster HTML : {poster_output}")
+        print()
+
+    else:
+        # ── STEP 2 (slides): Build presentation markdown ────────────
+        slides_output = output_dir / f"{input_path.stem}_slides.md"
+        build_cmd = [
+            sys.executable,
+            str(SCRIPT_DIR / "build_slides.py"),
+            "--input_file", str(build_input),
+            "--output_file", str(slides_output),
+            "--theme", args.theme,
+            "--verbosity", args.verbosity,
+        ]
+        if args.num_slides:
+            build_cmd.extend(["--num_slides", str(args.num_slides)])
+        if args.provider:
+            build_cmd.extend(["--provider", args.provider])
+        if args.model:
+            build_cmd.extend(["--model", args.model])
+        if args.use_cached:
+            build_cmd.append("--use_cached")
+
+        run_step(
+            current_step,
+            total_steps,
+            "Generating presentation markdown",
+            build_cmd,
+            log_prefix="build_slides",
+            expected_outputs=[
+                slides_output,
+                output_dir / "llm_response_raw.txt",
+            ],
+        )
+        current_step += 1
+
+        # ── STEP 3 (slides): Render to PDF ──────────────────────────
+        if args.skip_pdf:
+            print("\n  ⏭  Skipping PDF render (--skip_pdf)")
+        else:
+            pdf_output = slides_output.with_suffix(".pdf")
+            render_cmd = [
+                sys.executable,
+                str(SCRIPT_DIR / "render_marp_pdf.py"),
+                str(slides_output),
+                "--output", str(pdf_output),
+            ]
+            if args.marp_binary != "marp":
+                render_cmd.extend(["--marp-binary", args.marp_binary])
+
+            run_step(
+                current_step,
+                total_steps,
+                "Rendering slides to PDF",
+                render_cmd,
+                log_prefix="render_marp_pdf",
+                expected_outputs=[pdf_output],
+            )
+
+        print("\n╔════════════════════════════════════════════════════════════╗")
+        print("║                     Build Complete!                       ║")
+        print("╚════════════════════════════════════════════════════════════╝")
+        print(f"  📝  Slides markdown : {slides_output}")
+        if not args.skip_pdf:
+            print(f"  📄  Slides PDF      : {slides_output.with_suffix('.pdf')}")
+        print()
 
     return 0
 
