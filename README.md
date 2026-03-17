@@ -24,7 +24,7 @@ Give this tool a PDF or text file, it automatically extracts the content and bui
 </tr>
 </table>
 
-### Academic poster themes
+### Academic poster examples
 
 <table>
 <tr>
