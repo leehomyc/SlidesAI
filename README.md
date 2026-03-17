@@ -28,8 +28,8 @@ Give this tool a PDF or text file, it automatically extracts the content and bui
 
 <table>
 <tr>
-  <td align="center"><img src="demo/screenshots/posters/var_poster_premium.png" width="560"/><br/><b>premium</b></td>
-  <td align="center"><img src="demo/screenshots/posters/var_poster_terra.png" width="560"/><br/><b>terra</b></td>
+  <td align="center"><img src="demo/screenshots/posters/var_poster_premium.jpg" width="560"/><br/><b>premium</b></td>
+  <td align="center"><img src="demo/screenshots/posters/var_poster_terra.jpg" width="560"/><br/><b>terra</b></td>
 </tr>
 </table>
 
